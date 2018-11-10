@@ -1,7 +1,17 @@
 [package]
 name = "leveled-hash-map"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Magic Len <len@magiclen.org>"]
-edition = "2018"
+repository = "https://github.com/magiclen/leveled-hash-map"
+homepage = "https://magiclen.org/leveled-hash-map"
+keywords = ["hash", "map", "level", "hierarchy"]
+categories = ["data-structures"]
+description= "A structure to separate values into different levels with keys. Every key-value entry which is not at the top level has a parent key at the superior level. Keys at the same level are unique, no matter what parent keys they have."
+readme = "README.md"
+license = "MIT"
+
+[badges]
+travis-ci = { repository = "magiclen/leveled-hash-map", branch = "master" }
+appveyor = { repository = "magiclen/leveled-hash-map", branch = "master", service = "github" }
 
 [dependencies]

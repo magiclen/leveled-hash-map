@@ -1,21 +1,149 @@
-use std::collections::{HashMap, HashSet, hash_map::Keys};
+use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::sync::Arc;
 use std::fmt::{self, Debug, Formatter};
 
+/// A structure to separate values into different levels with keys. Every key-value entry which is not at the top level has a parent key at the superior level. Keys at the same level are unique, no matter what parent keys they have.
 #[derive(Debug)]
 pub struct LeveledHashMap<K: Eq + Hash, V> {
     pool: Vec<HashMap<Arc<K>, (Option<Arc<K>>, V)>>,
     sub: Vec<HashMap<Arc<K>, HashSet<Arc<K>>>>,
 }
 
+/// Possible errors come from `LeveledHashMap`.
 pub enum LeveledHashMapError<K> {
+    /// The length of a key chain is over the max level of a `LeveledHashMap`.
+    /// ```
+    /// extern crate leveled_hash_map;
+    ///
+    /// use std::sync::Arc;
+    ///
+    /// use leveled_hash_map::{LeveledHashMap, LeveledHashMapError};
+    ///
+    /// let mut map = LeveledHashMap::new();
+    ///
+    /// map.insert(&[Arc::new("food")], 100).unwrap();
+    ///
+    /// // now the map has "Level 0", "Level 0" is available to be got, "Level 0" and "Level 1" are available to be inserted
+    ///
+    /// assert_eq!(&100, map.get_advanced(&[Arc::new("food")], 0).unwrap());
+    ///
+    /// // try to get value at "Level 1"
+    ///
+    /// match map.get_professional(&[Arc::new("food"), Arc::new("dessert")], 0) {
+    ///     Ok(_) => unreachable!(),
+    ///     Err(err) => match err {
+    ///         LeveledHashMapError::KeyTooMany => (),
+    ///         _ => unreachable!()
+    ///     }
+    /// }
+    ///
+    /// // try to insert value to "Level 2"
+    ///
+    /// match map.insert(&[Arc::new("food"), Arc::new("dessert"), Arc::new("cake")], 10) {
+    ///     Ok(_) => unreachable!(),
+    ///     Err(err) => match err {
+    ///         LeveledHashMapError::KeyTooMany => (),
+    ///         _ => unreachable!()
+    ///     }
+    /// }
+    ///
+    /// // try to insert value to "Level 1"
+    ///
+    /// match map.insert(&[Arc::new("food"), Arc::new("dessert")], 10) {
+    ///     Ok(_) => (),
+    ///     Err(err) => unreachable!()
+    /// }
+    /// ```
     KeyTooMany,
+    /// The key chain is correct, but the last key in the key chain does not exist.
+    /// ```
+    /// extern crate leveled_hash_map;
+    ///
+    /// use std::sync::Arc;
+    ///
+    /// use leveled_hash_map::{LeveledHashMap, LeveledHashMapError};
+    ///
+    /// let mut map = LeveledHashMap::new();
+    ///
+    /// map.insert(&[Arc::new("food")], 100).unwrap();
+    ///
+    /// map.insert(&[Arc::new("food"), Arc::new("dessert")], 100).unwrap();
+    ///
+    /// map.insert(&[Arc::new("food"), Arc::new("dessert"), Arc::new("cake")], 100).unwrap();
+    ///
+    /// // try to get "food/dessert/chocolate"
+    ///
+    /// match map.get_professional(&[Arc::new("food"), Arc::new("dessert"), Arc::new("chocolate")], 0) {
+    ///     Ok(_) => unreachable!(),
+    ///     Err(err) => match err {
+    ///         LeveledHashMapError::KeyNotExist{level, key} => {
+    ///             assert_eq!(2, level);
+    ///             assert_eq!(Arc::new("chocolate"), key);
+    ///         },
+    ///         _ => unreachable!()
+    ///     }
+    /// }
+    /// ```
     KeyNotExist {
         level: usize,
         key: Arc<K>,
     },
+    /// The key chain is empty.
+    /// ```
+    /// extern crate leveled_hash_map;
+    ///
+    /// use std::sync::Arc;
+    ///
+    /// use leveled_hash_map::{LeveledHashMap, LeveledHashMapError};
+    ///
+    /// let mut map = LeveledHashMap::new();
+    ///
+    /// map.insert(&[Arc::new("food")], 100).unwrap();
+    ///
+    /// // try to get ""
+    ///
+    /// match map.get_professional(&[], 0) {
+    ///     Ok(_) => unreachable!(),
+    ///     Err(err) => match err {
+    ///         LeveledHashMapError::KeyChainEmpty => (),
+    ///         _ => unreachable!()
+    ///     }
+    /// }
+    /// ```
     KeyChainEmpty,
+    /// The key chain is incorrect.
+    /// ```
+    /// extern crate leveled_hash_map;
+    ///
+    /// use std::sync::Arc;
+    ///
+    /// use leveled_hash_map::{LeveledHashMap, LeveledHashMapError};
+    ///
+    /// let mut map = LeveledHashMap::new();
+    ///
+    /// map.insert(&[Arc::new("food")], 100).unwrap();
+    ///
+    /// map.insert(&[Arc::new("food"), Arc::new("meat")], 200).unwrap();
+    ///
+    /// map.insert(&[Arc::new("food"), Arc::new("dessert")], 100).unwrap();
+    ///
+    /// map.insert(&[Arc::new("food"), Arc::new("dessert"), Arc::new("cake")], 100).unwrap();
+    ///
+    /// // try to get "food/meat/chocolate", here "food/meat" exists
+    ///
+    /// match map.get_professional(&[Arc::new("food"), Arc::new("meat"), Arc::new("cake")], 0) {
+    ///     Ok(_) => unreachable!(),
+    ///     Err(err) => match err {
+    ///         LeveledHashMapError::KeyChainIncorrect{level, key, last_key} => {
+    ///             assert_eq!(2, level);
+    ///             assert_eq!(Arc::new("cake"), key);
+    ///             assert_eq!(Some(Arc::new("dessert")), last_key);
+    ///         },
+    ///         _ => unreachable!()
+    ///     }
+    /// }
+    /// ```
     KeyChainIncorrect {
         level: usize,
         key: Arc<K>,
@@ -44,7 +172,15 @@ impl<K> Debug for LeveledHashMapError<K> {
     }
 }
 
-impl<K: Clone + Eq + Hash, V> LeveledHashMap<K, V> {
+impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
+    /// Create a new `LeveledHashMap` instance. The key needs to be implemented `Eq` and `Hash` traits.
+    /// ```
+    /// extern crate leveled_hash_map;
+    ///
+    /// use leveled_hash_map::LeveledHashMap;
+    ///
+    /// let _map: LeveledHashMap<&'static str, String> = LeveledHashMap::new();
+    /// ```
     pub fn new() -> LeveledHashMap<K, V> {
         LeveledHashMap {
             pool: Vec::new(),
@@ -52,15 +188,63 @@ impl<K: Clone + Eq + Hash, V> LeveledHashMap<K, V> {
         }
     }
 
+    /// Get a value by a key chain. The key chain starts at Level 0.
+    /// ```
+    /// extern crate leveled_hash_map;
+    ///
+    /// use std::sync::Arc;
+    ///
+    /// use leveled_hash_map::LeveledHashMap;
+    ///
+    /// let map: LeveledHashMap<&'static str, String> = LeveledHashMap::new();
+    ///
+    /// let _result = map.get(&[Arc::new("first_key")]);
+    /// ```
     pub fn get(&self, key_chain: &[Arc<K>]) -> Option<&V> {
         self.get_advanced(key_chain, 0)
     }
 
+    /// Get a value by a key chain and a level which the key chain starts with.
+    /// ```
+    /// extern crate leveled_hash_map;
+    ///
+    /// use std::sync::Arc;
+    ///
+    /// use leveled_hash_map::LeveledHashMap;
+    ///
+    /// let map: LeveledHashMap<&'static str, String> = LeveledHashMap::new();
+    ///
+    /// let _result = map.get_advanced(&[Arc::new("second_key")], 1);
+    /// ```
     pub fn get_advanced(&self, key_chain: &[Arc<K>], start_level: usize) -> Option<&V> {
-        self.get_low_level(key_chain, start_level).ok().map(|v| v.1)
+        self.get_professional(key_chain, start_level).ok().map(|v| v.1)
     }
 
-    pub fn get_low_level(&self, key_chain: &[Arc<K>], start_level: usize) -> Result<(Option<Arc<K>>, &V), LeveledHashMapError<K>> {
+    /// Get a value and its parent key by a key chain and a level which the key chain starts with. It returns a `Err(LeveledHashMapError)` instance to describe the reason of the getting failure.
+    /// ```
+    /// extern crate leveled_hash_map;
+    ///
+    /// use std::sync::Arc;
+    ///
+    /// use leveled_hash_map::LeveledHashMap;
+    ///
+    /// let mut map: LeveledHashMap<&'static str, String> = LeveledHashMap::new();
+    ///
+    /// map.insert(&[Arc::new("food")], "食物".to_string()).unwrap();
+    ///
+    /// map.insert(&[Arc::new("food"), Arc::new("dessert")], "甜點".to_string()).unwrap();
+    ///
+    /// let result_1 = map.get_professional(&[Arc::new("food")], 0).unwrap();
+    ///
+    /// let result_2 = map.get_professional(&[Arc::new("food"), Arc::new("dessert")], 0).unwrap();
+    ///
+    /// assert_eq!(None, result_1.0);
+    /// assert_eq!("食物", result_1.1);
+    ///
+    /// assert_eq!(Some(Arc::new("food")), result_2.0);
+    /// assert_eq!("甜點", result_2.1);
+    /// ```
+    pub fn get_professional(&self, key_chain: &[Arc<K>], start_level: usize) -> Result<(Option<Arc<K>>, &V), LeveledHashMapError<K>> {
         let key_chain_len = key_chain.len();
 
         if key_chain_len == 0 {
@@ -121,16 +305,99 @@ impl<K: Clone + Eq + Hash, V> LeveledHashMap<K, V> {
         }
     }
 
+    /// Remove a value by a key chain. The key chain starts at Level 0.
+    /// ```
+    /// extern crate leveled_hash_map;
+    ///
+    /// use std::sync::Arc;
+    ///
+    /// use leveled_hash_map::LeveledHashMap;
+    ///
+    /// let mut map: LeveledHashMap<&'static str, String> = LeveledHashMap::new();
+    ///
+    /// map.insert(&[Arc::new("food")], "食物".to_string()).unwrap();
+    ///
+    /// map.insert(&[Arc::new("food"), Arc::new("dessert")], "甜點".to_string()).unwrap();
+    ///
+    /// map.insert(&[Arc::new("food"), Arc::new("meat")], "肉類".to_string()).unwrap();
+    ///
+    /// let result = map.remove(&[Arc::new("food"), Arc::new("dessert")]).unwrap();
+    ///
+    /// assert_eq!("甜點", result.0);
+    /// assert_eq!(0, result.1.len());
+    ///
+    /// let result = map.remove(&[Arc::new("food")]).unwrap();
+    ///
+    /// assert_eq!("食物", result.0);
+    /// assert_eq!(1, result.1.len());
+    /// assert_eq!(&(Some(Arc::new("food")), "肉類".to_string()), result.1[0].get(&Arc::new("meat")).unwrap());
+    /// ```
     pub fn remove(&mut self, key_chain: &[Arc<K>]) -> Option<(V, Vec<HashMap<Arc<K>, (Option<Arc<K>>, V)>>)> {
         self.remove_advanced(key_chain, 0)
     }
 
+    /// Remove a value by a key chain and a level which the key chain starts with.
+    /// ```
+    /// extern crate leveled_hash_map;
+    ///
+    /// use std::sync::Arc;
+    ///
+    /// use leveled_hash_map::LeveledHashMap;
+    ///
+    /// let mut map: LeveledHashMap<&'static str, String> = LeveledHashMap::new();
+    ///
+    /// map.insert(&[Arc::new("food")], "食物".to_string()).unwrap();
+    ///
+    /// map.insert(&[Arc::new("food"), Arc::new("dessert")], "甜點".to_string()).unwrap();
+    ///
+    /// map.insert(&[Arc::new("food"), Arc::new("meat")], "肉類".to_string()).unwrap();
+    ///
+    /// let result = map.remove_advanced(&[Arc::new("dessert")], 1).unwrap();
+    ///
+    /// assert_eq!("甜點", result.0);
+    /// assert_eq!(0, result.1.len());
+    ///
+    /// let result = map.remove_advanced(&[Arc::new("food")], 0).unwrap();
+    ///
+    /// assert_eq!("食物", result.0);
+    /// assert_eq!(1, result.1.len());
+    /// assert_eq!(&(Some(Arc::new("food")), "肉類".to_string()), result.1[0].get(&Arc::new("meat")).unwrap());
+    /// ```
     pub fn remove_advanced(&mut self, key_chain: &[Arc<K>], start_level: usize) -> Option<(V, Vec<HashMap<Arc<K>, (Option<Arc<K>>, V)>>)> {
-        self.remove_low_level(key_chain, start_level).ok().map(|v| (v.1, v.2))
+        self.remove_professional(key_chain, start_level).ok().map(|v| (v.1, v.2))
     }
 
-    pub fn remove_low_level(&mut self, key_chain: &[Arc<K>], start_level: usize) -> Result<(Option<Arc<K>>, V, Vec<HashMap<Arc<K>, (Option<Arc<K>>, V)>>), LeveledHashMapError<K>> {
-        let last_key = self.get_low_level(key_chain, start_level)?.0;
+    /// Remove a value by a key chain and a level which the key chain starts with. It returns a `Err(LeveledHashMapError)` instance to describe the reason of the getting failure.
+    /// ```
+    /// extern crate leveled_hash_map;
+    ///
+    /// use std::sync::Arc;
+    ///
+    /// use leveled_hash_map::LeveledHashMap;
+    ///
+    /// let mut map: LeveledHashMap<&'static str, String> = LeveledHashMap::new();
+    ///
+    /// map.insert(&[Arc::new("food")], "食物".to_string()).unwrap();
+    ///
+    /// map.insert(&[Arc::new("food"), Arc::new("dessert")], "甜點".to_string()).unwrap();
+    ///
+    /// map.insert(&[Arc::new("food"), Arc::new("meat")], "肉類".to_string()).unwrap();
+    ///
+    /// let result = map.remove_professional(&[Arc::new("dessert")], 1).unwrap();
+    ///
+    /// assert_eq!(Some(Arc::new("food")), result.0);
+    /// assert_eq!("甜點", result.1);
+    /// assert_eq!(0, result.2.len());
+    ///
+    /// let result = map.remove_professional(&[Arc::new("food")], 0).unwrap();
+    ///
+    /// assert_eq!(None, result.0);
+    /// assert_eq!("食物", result.1);
+    /// assert_eq!(1, result.2.len());
+    /// assert_eq!(&(Some(Arc::new("food")), "肉類".to_string()), result.2[0].get(&Arc::new("meat")).unwrap());
+    /// ```
+    pub fn remove_professional(&mut self, key_chain: &[Arc<K>], start_level: usize) -> Result<(Option<Arc<K>>, V, Vec<HashMap<Arc<K>, (Option<Arc<K>>, V)>>), LeveledHashMapError<K>> {
+        let last_key = self.get_professional(key_chain, start_level)?.0;
 
         let key_chain_len = key_chain.len();
 
@@ -156,7 +423,7 @@ impl<K: Clone + Eq + Hash, V> LeveledHashMap<K, V> {
         let mut my_sub_values = HashMap::new();
 
         for s in sub {
-            let (a, b, mut c) = self.remove_low_level(&[Arc::clone(&s)], level + 1).unwrap();
+            let (a, b, mut c) = self.remove_professional(&[Arc::clone(&s)], level + 1).unwrap();
 
             let len = c.len();
 
@@ -165,16 +432,13 @@ impl<K: Clone + Eq + Hash, V> LeveledHashMap<K, V> {
             c.reverse();
 
             for i in (0..len).rev() {
-                match sub_values.get_mut(i) {
-                    Some(h) => {
-                        for (k, v) in c.remove(i) {
-                            h.insert(k, v);
-                        }
+                if let Some(h) = sub_values.get_mut(i) {
+                    for (k, v) in c.remove(i) {
+                        h.insert(k, v);
                     }
-                    None => {
-                        sub_values.push(c.remove(i));
-                    }
+                    continue;
                 }
+                sub_values.push(c.remove(i));
             }
 
             my_sub_values.insert(s, (a, b));
@@ -185,6 +449,32 @@ impl<K: Clone + Eq + Hash, V> LeveledHashMap<K, V> {
         Ok((pk, v, sub_values))
     }
 
+    /// Insert a value by a key chain. It returns a `Err(LeveledHashMapError)` instance to describe the reason of the getting failure.
+    /// ```
+    /// extern crate leveled_hash_map;
+    ///
+    /// use std::sync::Arc;
+    ///
+    /// use leveled_hash_map::LeveledHashMap;
+    ///
+    /// let mut map: LeveledHashMap<&'static str, String> = LeveledHashMap::new();
+    ///
+    /// map.insert(&[Arc::new("food")], "食物".to_string()).unwrap();
+    ///
+    /// {
+    ///     let result = map.get(&[Arc::new("food")]).unwrap();
+    ///
+    ///     assert_eq!("食物", result);
+    /// }
+    ///
+    /// let result = map.insert(&[Arc::new("food")], "食品".to_string()).unwrap();
+    ///
+    /// assert_eq!(Some("食物".to_string()), result);
+    ///
+    /// let result = map.get(&[Arc::new("food")]).unwrap();
+    ///
+    /// assert_eq!("食品", result);
+    /// ```
     pub fn insert(&mut self, key_chain: &[Arc<K>], value: V) -> Result<Option<V>, LeveledHashMapError<K>> {
         let key_chain_len = key_chain.len();
 
@@ -198,7 +488,7 @@ impl<K: Clone + Eq + Hash, V> LeveledHashMap<K, V> {
             return Err(LeveledHashMapError::KeyTooMany);
         }
 
-        match self.get_low_level(key_chain, 0) {
+        match self.get_professional(key_chain, 0) {
             Ok(_) => {
                 if key_chain_len_dec > 0 {
                     Ok(self.pool[key_chain_len_dec].insert(Arc::clone(&key_chain[key_chain_len_dec]), (Some(Arc::clone(&key_chain[key_chain_len_dec - 1])), value)).map(|v| v.1))
@@ -258,6 +548,34 @@ impl<K: Clone + Eq + Hash, V> LeveledHashMap<K, V> {
         }
     }
 
+    /// Insert values by a key chain and a `HashMap` instance and a level which the key chain starts with. It returns a `Err(LeveledHashMapError)` instance to describe the reason of the getting failure.
+    /// ```
+    /// extern crate leveled_hash_map;
+    ///
+    /// use std::sync::Arc;
+    /// use std::collections::HashMap;
+    ///
+    /// use leveled_hash_map::LeveledHashMap;
+    ///
+    /// let mut map: LeveledHashMap<&'static str, String> = LeveledHashMap::new();
+    ///
+    /// map.insert(&[Arc::new("food")], "食物".to_string()).unwrap();
+    ///
+    /// let mut insert_map = HashMap::new();
+    ///
+    /// insert_map.insert("dessert", "甜點".to_string());
+    /// insert_map.insert("meat", "肉類".to_string());
+    ///
+    /// map.insert_many(&[Arc::new("food")], insert_map, 0).unwrap();
+    ///
+    /// let result = map.get(&[Arc::new("food"), Arc::new("dessert")]).unwrap();
+    ///
+    /// assert_eq!("甜點", result);
+    ///
+    /// let result = map.get(&[Arc::new("food"), Arc::new("meat")]).unwrap();
+    ///
+    /// assert_eq!("肉類", result);
+    /// ```
     pub fn insert_many(&mut self, key_chain: &[Arc<K>], value: HashMap<K, V>, start_level: usize) -> Result<HashMap<Arc<K>, V>, LeveledHashMapError<K>> {
         let key_chain_len = key_chain.len();
 
@@ -265,7 +583,7 @@ impl<K: Clone + Eq + Hash, V> LeveledHashMap<K, V> {
             return Err(LeveledHashMapError::KeyTooMany);
         }
 
-        match self.get_low_level(key_chain, start_level) {
+        match self.get_professional(key_chain, start_level) {
             Ok(_) => {
                 let key_chain_len_dec = key_chain_len - 1;
 
@@ -348,9 +666,37 @@ impl<K: Clone + Eq + Hash, V> LeveledHashMap<K, V> {
         }
     }
 
-    pub fn keys(&mut self, level: usize) -> Option<Keys<Arc<K>, HashSet<Arc<K>>>> {
+    /// Get the keys at a specific level.
+    /// ```
+    /// extern crate leveled_hash_map;
+    ///
+    /// use std::sync::Arc;
+    /// use std::collections::HashMap;
+    ///
+    /// use leveled_hash_map::LeveledHashMap;
+    ///
+    /// let mut map: LeveledHashMap<&'static str, String> = LeveledHashMap::new();
+    ///
+    /// map.insert(&[Arc::new("food")], "食物".to_string()).unwrap();
+    ///
+    /// let mut insert_map = HashMap::new();
+    ///
+    /// insert_map.insert("dessert", "甜點".to_string());
+    /// insert_map.insert("meat", "肉類".to_string());
+    ///
+    /// map.insert_many(&[Arc::new("food")], insert_map, 0).unwrap();
+    ///
+    /// let result = map.keys(0).unwrap();
+    ///
+    /// assert_eq!(1, result.len());
+    ///
+    /// let result = map.keys(1).unwrap();
+    ///
+    /// assert_eq!(2, result.len());
+    /// ```
+    pub fn keys(&self, level: usize) -> Option<&HashMap<Arc<K>, HashSet<Arc<K>>>> {
         match self.sub.get(level) {
-            Some(v) => Some(v.keys()),
+            Some(v) => Some(&v),
             None => None
         }
     }
