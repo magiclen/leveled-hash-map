@@ -204,6 +204,22 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
         self.get_advanced(key_chain, 0)
     }
 
+    /// Get a value by a key chain. The key chain starts at Level 0.
+    /// ```
+    /// extern crate leveled_hash_map;
+    ///
+    /// use std::sync::Arc;
+    ///
+    /// use leveled_hash_map::LeveledHashMap;
+    ///
+    /// let mut map: LeveledHashMap<&'static str, String> = LeveledHashMap::new();
+    ///
+    /// let _result = map.get_mut (&[Arc::new("first_key")]);
+    /// ```
+    pub fn get_mut(&mut self, key_chain: &[Arc<K>]) -> Option<&mut V> {
+        self.get_advanced_mut(key_chain, 0)
+    }
+
     /// Get a value by a key chain and a level which the key chain starts with.
     /// ```
     /// extern crate leveled_hash_map;
@@ -218,6 +234,22 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     /// ```
     pub fn get_advanced(&self, key_chain: &[Arc<K>], start_level: usize) -> Option<&V> {
         self.get_professional(key_chain, start_level).ok().map(|v| v.1)
+    }
+
+    /// Get a value by a key chain and a level which the key chain starts with.
+    /// ```
+    /// extern crate leveled_hash_map;
+    ///
+    /// use std::sync::Arc;
+    ///
+    /// use leveled_hash_map::LeveledHashMap;
+    ///
+    /// let mut map: LeveledHashMap<&'static str, String> = LeveledHashMap::new();
+    ///
+    /// let _result = map.get_advanced_mut(&[Arc::new("second_key")], 1);
+    /// ```
+    pub fn get_advanced_mut(&mut self, key_chain: &[Arc<K>], start_level: usize) -> Option<&mut V> {
+        self.get_professional_mut(key_chain, start_level).ok().map(|v| v.1)
     }
 
     /// Get a value and its parent key by a key chain and a level which the key chain starts with. It returns a `Err(LeveledHashMapError)` instance to describe the reason of the getting failure.
@@ -287,6 +319,88 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
         let ii = key_chain_len_dec + start_level;
 
         match self.pool[ii].get(ck) {
+            Some((pk, v)) => {
+                if ii > start_level && last_key.ne(&pk.as_ref()) {
+                    return Err(LeveledHashMapError::KeyChainIncorrect {
+                        level: ii,
+                        key: Arc::clone(ck),
+                        last_key: pk.as_ref().map(|v| Arc::clone(v)),
+                    });
+                }
+                let pk = pk.as_ref().map(|v| Arc::clone(v));
+                Ok((pk, v))
+            }
+            None => Err(LeveledHashMapError::KeyNotExist {
+                level: ii,
+                key: Arc::clone(ck),
+            })
+        }
+    }
+
+    /// Get a value and its parent key by a key chain and a level which the key chain starts with. It returns a `Err(LeveledHashMapError)` instance to describe the reason of the getting failure.
+    /// ```
+    /// extern crate leveled_hash_map;
+    ///
+    /// use std::sync::Arc;
+    ///
+    /// use leveled_hash_map::LeveledHashMap;
+    ///
+    /// let mut map: LeveledHashMap<&'static str, String> = LeveledHashMap::new();
+    ///
+    /// map.insert(&[Arc::new("food")], "食物".to_string()).unwrap();
+    ///
+    /// map.insert(&[Arc::new("food"), Arc::new("dessert")], "甜點".to_string()).unwrap();
+    ///
+    /// let result = map.get_professional_mut(&[Arc::new("food")], 0).unwrap();
+    ///
+    /// result.1.push_str("/食品");
+    ///
+    /// assert_eq!(None, result.0);
+    /// assert_eq!("食物/食品", result.1);
+    /// ```
+    pub fn get_professional_mut(&mut self, key_chain: &[Arc<K>], start_level: usize) -> Result<(Option<Arc<K>>, &mut V), LeveledHashMapError<K>> {
+        let key_chain_len = key_chain.len();
+
+        if key_chain_len == 0 {
+            return Err(LeveledHashMapError::KeyChainEmpty);
+        } else if key_chain_len + start_level > self.pool.len() {
+            return Err(LeveledHashMapError::KeyTooMany);
+        }
+
+        let key_chain_len_dec = key_chain_len - 1;
+
+        let mut i = 0;
+
+        let mut last_key = None;
+
+        while i < key_chain_len_dec {
+            let ii = i + start_level;
+            let ck = &key_chain[i];
+            match self.pool[ii].get(ck) {
+                Some((pk, _)) => {
+                    if ii > start_level && last_key.ne(&pk.as_ref()) {
+                        return Err(LeveledHashMapError::KeyChainIncorrect {
+                            level: ii,
+                            key: Arc::clone(ck),
+                            last_key: pk.as_ref().map(|v| Arc::clone(v)),
+                        });
+                    }
+                    last_key = Some(&ck);
+                }
+                None => return Err(LeveledHashMapError::KeyNotExist {
+                    level: ii,
+                    key: Arc::clone(ck),
+                })
+            }
+
+            i += 1;
+        }
+
+        let ck = &key_chain[key_chain_len_dec];
+
+        let ii = key_chain_len_dec + start_level;
+
+        match self.pool[ii].get_mut(ck) {
             Some((pk, v)) => {
                 if ii > start_level && last_key.ne(&pk.as_ref()) {
                     return Err(LeveledHashMapError::KeyChainIncorrect {
