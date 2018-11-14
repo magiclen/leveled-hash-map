@@ -6,7 +6,7 @@ Leveled HashMap
 
 `LeveledHashMap` is a structure to separate values into different levels with keys. Every key-value entry which is not at the top level has a parent key at the superior level. Keys at the same level are unique, no matter what parent keys they have.
 
-## Examples
+## Example
 
 ```rust
 extern crate leveled_hash_map;
