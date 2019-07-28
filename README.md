@@ -2,7 +2,6 @@ Leveled HashMap
 ====================
 
 [![Build Status](https://travis-ci.org/magiclen/leveled-hash-map.svg?branch=master)](https://travis-ci.org/magiclen/leveled-hash-map)
-[![Build status](https://ci.appveyor.com/api/projects/status/2n3l0uyblsyuoo5m/branch/master?svg=true)](https://ci.appveyor.com/project/magiclen/leveled-hash-map/branch/master)
 
 `LeveledHashMap` is a structure to separate values into different levels with keys. Every key-value entry which is not at the top level has a parent key at the superior level. Keys at the same level are unique, no matter what parent keys they have.
 

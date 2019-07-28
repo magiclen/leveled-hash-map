@@ -1,6 +1,6 @@
 [package]
 name = "leveled-hash-map"
-version = "1.1.1"
+version = "1.1.2"
 authors = ["Magic Len <len@magiclen.org>"]
 repository = "https://github.com/magiclen/leveled-hash-map"
 homepage = "https://magiclen.org/leveled-hash-map"
@@ -10,8 +10,8 @@ description= "A structure to separate values into different levels with keys. Ev
 readme = "README.md"
 license = "MIT"
 
-[badges]
-travis-ci = { repository = "magiclen/leveled-hash-map", branch = "master" }
-appveyor = { repository = "magiclen/leveled-hash-map", branch = "master", service = "github" }
+[badges.travis-ci]
+repository = "magiclen/leveled-hash-map"
+branch = "master"
 
 [dependencies]
