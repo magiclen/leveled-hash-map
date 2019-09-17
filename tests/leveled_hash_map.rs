@@ -1,11 +1,12 @@
 extern crate leveled_hash_map;
 
-use std::sync::Arc;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use leveled_hash_map::LeveledHashMap;
 
 #[test]
+#[allow(clippy::cognitive_complexity)]
 fn advanced() {
     let mut map: LeveledHashMap<&'static str, u8> = LeveledHashMap::new();
 
@@ -37,11 +38,17 @@ fn advanced() {
 
     map.insert(&[Arc::new("food"), Arc::new("dessert"), Arc::new("cake")], 30).unwrap();
 
-    assert_eq!(&30, map.get_advanced(&[Arc::new("food"), Arc::new("dessert"), Arc::new("cake")], 0).unwrap());
+    assert_eq!(
+        &30,
+        map.get_advanced(&[Arc::new("food"), Arc::new("dessert"), Arc::new("cake")], 0).unwrap()
+    );
 
     map.insert(&[Arc::new("food"), Arc::new("dessert"), Arc::new("pudding")], 31).unwrap();
 
-    assert_eq!(&31, map.get_advanced(&[Arc::new("food"), Arc::new("dessert"), Arc::new("pudding")], 0).unwrap());
+    assert_eq!(
+        &31,
+        map.get_advanced(&[Arc::new("food"), Arc::new("dessert"), Arc::new("pudding")], 0).unwrap()
+    );
 
     assert_eq!(&31, map.get_advanced(&[Arc::new("dessert"), Arc::new("pudding")], 1).unwrap());
 
@@ -55,9 +62,20 @@ fn advanced() {
 
     map.insert(&[Arc::new("food"), Arc::new("dessert"), Arc::new("cake")], 30).unwrap();
 
-    map.insert(&[Arc::new("food"), Arc::new("dessert"), Arc::new("cake"), Arc::new("cheese cake")], 40).unwrap();
+    map.insert(
+        &[Arc::new("food"), Arc::new("dessert"), Arc::new("cake"), Arc::new("cheese cake")],
+        40,
+    )
+    .unwrap();
 
-    assert_eq!(&40, map.get_advanced(&[Arc::new("food"), Arc::new("dessert"), Arc::new("cake"), Arc::new("cheese cake")], 0).unwrap());
+    assert_eq!(
+        &40,
+        map.get_advanced(
+            &[Arc::new("food"), Arc::new("dessert"), Arc::new("cake"), Arc::new("cheese cake")],
+            0
+        )
+        .unwrap()
+    );
 
     let remove_result = map.remove_advanced(&[Arc::new("food"), Arc::new("dessert")], 0).unwrap();
 

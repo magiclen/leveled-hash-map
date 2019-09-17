@@ -1,7 +1,7 @@
 extern crate leveled_hash_map;
 
-use std::sync::Arc;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use leveled_hash_map::LeveledHashMap;
 
@@ -20,7 +20,8 @@ fn main() {
             us: "United States of America",
             tw: "美國",
             cn: "美国",
-        }).unwrap();
+        })
+        .unwrap();
 
         let mut us_states = HashMap::new();
 
@@ -41,7 +42,8 @@ fn main() {
             us: "China",
             tw: "中國",
             cn: "中国",
-        }).unwrap();
+        })
+        .unwrap();
 
         let mut cn_provinces = HashMap::new();
 
@@ -62,7 +64,8 @@ fn main() {
             us: "Taiwan",
             tw: "臺灣",
             cn: "臺湾",
-        }).unwrap();
+        })
+        .unwrap();
 
         let mut tw_counties = HashMap::new();
 

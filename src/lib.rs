@@ -1,7 +1,9 @@
+#![allow(clippy::type_complexity)]
+
 use std::collections::{HashMap, HashSet};
+use std::fmt::{self, Debug, Formatter};
 use std::hash::Hash;
 use std::sync::Arc;
-use std::fmt::{self, Debug, Formatter};
 
 /// A structure to separate values into different levels with keys. Every key-value entry which is not at the top level has a parent key at the superior level. Keys at the same level are unique, no matter what parent keys they have.
 #[derive(Debug)]
@@ -76,12 +78,17 @@ pub enum LeveledHashMapError<K> {
     ///
     /// match map.get_professional(&[Arc::new("food"), Arc::new("dessert"), Arc::new("chocolate")], 0) {
     ///     Ok(_) => unreachable!(),
-    ///     Err(err) => match err {
-    ///         LeveledHashMapError::KeyNotExist{level, key} => {
-    ///             assert_eq!(2, level);
-    ///             assert_eq!(Arc::new("chocolate"), key);
-    ///         },
-    ///         _ => unreachable!()
+    ///     Err(err) => {
+    ///         match err {
+    ///             LeveledHashMapError::KeyNotExist {
+    ///                 level,
+    ///                 key,
+    ///             } => {
+    ///                 assert_eq!(2, level);
+    ///                 assert_eq!(Arc::new("chocolate"), key);
+    ///             }
+    ///             _ => unreachable!(),
+    ///         }
     ///     }
     /// }
     /// ```
@@ -105,9 +112,11 @@ pub enum LeveledHashMapError<K> {
     ///
     /// match map.get_professional(&[], 0) {
     ///     Ok(_) => unreachable!(),
-    ///     Err(err) => match err {
-    ///         LeveledHashMapError::KeyChainEmpty => (),
-    ///         _ => unreachable!()
+    ///     Err(err) => {
+    ///         match err {
+    ///             LeveledHashMapError::KeyChainEmpty => (),
+    ///             _ => unreachable!(),
+    ///         }
     ///     }
     /// }
     /// ```
@@ -134,13 +143,19 @@ pub enum LeveledHashMapError<K> {
     ///
     /// match map.get_professional(&[Arc::new("food"), Arc::new("meat"), Arc::new("cake")], 0) {
     ///     Ok(_) => unreachable!(),
-    ///     Err(err) => match err {
-    ///         LeveledHashMapError::KeyChainIncorrect{level, key, last_key} => {
-    ///             assert_eq!(2, level);
-    ///             assert_eq!(Arc::new("cake"), key);
-    ///             assert_eq!(Some(Arc::new("dessert")), last_key);
-    ///         },
-    ///         _ => unreachable!()
+    ///     Err(err) => {
+    ///         match err {
+    ///             LeveledHashMapError::KeyChainIncorrect {
+    ///                 level,
+    ///                 key,
+    ///                 last_key,
+    ///             } => {
+    ///                 assert_eq!(2, level);
+    ///                 assert_eq!(Arc::new("cake"), key);
+    ///                 assert_eq!(Some(Arc::new("dessert")), last_key);
+    ///             }
+    ///             _ => unreachable!(),
+    ///         }
     ///     }
     /// }
     /// ```
@@ -157,13 +172,19 @@ impl<K> Debug for LeveledHashMapError<K> {
             LeveledHashMapError::KeyTooMany => {
                 f.write_str("KeyTooMany")?;
             }
-            LeveledHashMapError::KeyNotExist { level, .. } => {
+            LeveledHashMapError::KeyNotExist {
+                level,
+                ..
+            } => {
                 f.write_fmt(format_args!("KeyNotExist(Level={})", level))?;
             }
             LeveledHashMapError::KeyChainEmpty => {
                 f.write_str("KeyChainEmpty")?;
             }
-            LeveledHashMapError::KeyChainIncorrect { level, .. } => {
+            LeveledHashMapError::KeyChainIncorrect {
+                level,
+                ..
+            } => {
                 f.write_fmt(format_args!("KeyChainIncorrect(Level={})", level))?;
             }
         }
@@ -214,7 +235,7 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     ///
     /// let mut map: LeveledHashMap<&'static str, String> = LeveledHashMap::new();
     ///
-    /// let _result = map.get_mut (&[Arc::new("first_key")]);
+    /// let _result = map.get_mut(&[Arc::new("first_key")]);
     /// ```
     pub fn get_mut(&mut self, key_chain: &[Arc<K>]) -> Option<&mut V> {
         self.get_advanced_mut(key_chain, 0)
@@ -276,7 +297,11 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     /// assert_eq!(Some(Arc::new("food")), result_2.0);
     /// assert_eq!("甜點", result_2.1);
     /// ```
-    pub fn get_professional(&self, key_chain: &[Arc<K>], start_level: usize) -> Result<(Option<Arc<K>>, &V), LeveledHashMapError<K>> {
+    pub fn get_professional(
+        &self,
+        key_chain: &[Arc<K>],
+        start_level: usize,
+    ) -> Result<(Option<Arc<K>>, &V), LeveledHashMapError<K>> {
         let key_chain_len = key_chain.len();
 
         if key_chain_len == 0 {
@@ -305,10 +330,12 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
                     }
                     last_key = Some(&ck);
                 }
-                None => return Err(LeveledHashMapError::KeyNotExist {
-                    level: ii,
-                    key: Arc::clone(ck),
-                })
+                None => {
+                    return Err(LeveledHashMapError::KeyNotExist {
+                        level: ii,
+                        key: Arc::clone(ck),
+                    })
+                }
             }
 
             i += 1;
@@ -330,10 +357,12 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
                 let pk = pk.as_ref().map(|v| Arc::clone(v));
                 Ok((pk, v))
             }
-            None => Err(LeveledHashMapError::KeyNotExist {
-                level: ii,
-                key: Arc::clone(ck),
-            })
+            None => {
+                Err(LeveledHashMapError::KeyNotExist {
+                    level: ii,
+                    key: Arc::clone(ck),
+                })
+            }
         }
     }
 
@@ -358,7 +387,11 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     /// assert_eq!(None, result.0);
     /// assert_eq!("食物/食品", result.1);
     /// ```
-    pub fn get_professional_mut(&mut self, key_chain: &[Arc<K>], start_level: usize) -> Result<(Option<Arc<K>>, &mut V), LeveledHashMapError<K>> {
+    pub fn get_professional_mut(
+        &mut self,
+        key_chain: &[Arc<K>],
+        start_level: usize,
+    ) -> Result<(Option<Arc<K>>, &mut V), LeveledHashMapError<K>> {
         let key_chain_len = key_chain.len();
 
         if key_chain_len == 0 {
@@ -387,10 +420,12 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
                     }
                     last_key = Some(&ck);
                 }
-                None => return Err(LeveledHashMapError::KeyNotExist {
-                    level: ii,
-                    key: Arc::clone(ck),
-                })
+                None => {
+                    return Err(LeveledHashMapError::KeyNotExist {
+                        level: ii,
+                        key: Arc::clone(ck),
+                    })
+                }
             }
 
             i += 1;
@@ -412,10 +447,12 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
                 let pk = pk.as_ref().map(|v| Arc::clone(v));
                 Ok((pk, v))
             }
-            None => Err(LeveledHashMapError::KeyNotExist {
-                level: ii,
-                key: Arc::clone(ck),
-            })
+            None => {
+                Err(LeveledHashMapError::KeyNotExist {
+                    level: ii,
+                    key: Arc::clone(ck),
+                })
+            }
         }
     }
 
@@ -444,9 +481,15 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     ///
     /// assert_eq!("食物", result.0);
     /// assert_eq!(1, result.1.len());
-    /// assert_eq!(&(Some(Arc::new("food")), "肉類".to_string()), result.1[0].get(&Arc::new("meat")).unwrap());
+    /// assert_eq!(
+    ///     &(Some(Arc::new("food")), "肉類".to_string()),
+    ///     result.1[0].get(&Arc::new("meat")).unwrap()
+    /// );
     /// ```
-    pub fn remove(&mut self, key_chain: &[Arc<K>]) -> Option<(V, Vec<HashMap<Arc<K>, (Option<Arc<K>>, V)>>)> {
+    pub fn remove(
+        &mut self,
+        key_chain: &[Arc<K>],
+    ) -> Option<(V, Vec<HashMap<Arc<K>, (Option<Arc<K>>, V)>>)> {
         self.remove_advanced(key_chain, 0)
     }
 
@@ -475,9 +518,16 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     ///
     /// assert_eq!("食物", result.0);
     /// assert_eq!(1, result.1.len());
-    /// assert_eq!(&(Some(Arc::new("food")), "肉類".to_string()), result.1[0].get(&Arc::new("meat")).unwrap());
+    /// assert_eq!(
+    ///     &(Some(Arc::new("food")), "肉類".to_string()),
+    ///     result.1[0].get(&Arc::new("meat")).unwrap()
+    /// );
     /// ```
-    pub fn remove_advanced(&mut self, key_chain: &[Arc<K>], start_level: usize) -> Option<(V, Vec<HashMap<Arc<K>, (Option<Arc<K>>, V)>>)> {
+    pub fn remove_advanced(
+        &mut self,
+        key_chain: &[Arc<K>],
+        start_level: usize,
+    ) -> Option<(V, Vec<HashMap<Arc<K>, (Option<Arc<K>>, V)>>)> {
         self.remove_professional(key_chain, start_level).ok().map(|v| (v.1, v.2))
     }
 
@@ -508,9 +558,19 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     /// assert_eq!(None, result.0);
     /// assert_eq!("食物", result.1);
     /// assert_eq!(1, result.2.len());
-    /// assert_eq!(&(Some(Arc::new("food")), "肉類".to_string()), result.2[0].get(&Arc::new("meat")).unwrap());
+    /// assert_eq!(
+    ///     &(Some(Arc::new("food")), "肉類".to_string()),
+    ///     result.2[0].get(&Arc::new("meat")).unwrap()
+    /// );
     /// ```
-    pub fn remove_professional(&mut self, key_chain: &[Arc<K>], start_level: usize) -> Result<(Option<Arc<K>>, V, Vec<HashMap<Arc<K>, (Option<Arc<K>>, V)>>), LeveledHashMapError<K>> {
+    pub fn remove_professional(
+        &mut self,
+        key_chain: &[Arc<K>],
+        start_level: usize,
+    ) -> Result<
+        (Option<Arc<K>>, V, Vec<HashMap<Arc<K>, (Option<Arc<K>>, V)>>),
+        LeveledHashMapError<K>,
+    > {
         let last_key = self.get_professional(key_chain, start_level)?.0;
 
         let key_chain_len = key_chain.len();
@@ -589,7 +649,11 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     ///
     /// assert_eq!("食品", result);
     /// ```
-    pub fn insert(&mut self, key_chain: &[Arc<K>], value: V) -> Result<Option<V>, LeveledHashMapError<K>> {
+    pub fn insert(
+        &mut self,
+        key_chain: &[Arc<K>],
+        value: V,
+    ) -> Result<Option<V>, LeveledHashMapError<K>> {
         let key_chain_len = key_chain.len();
 
         if key_chain_len == 0 {
@@ -605,58 +669,90 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
         match self.get_professional(key_chain, 0) {
             Ok(_) => {
                 if key_chain_len_dec > 0 {
-                    Ok(self.pool[key_chain_len_dec].insert(Arc::clone(&key_chain[key_chain_len_dec]), (Some(Arc::clone(&key_chain[key_chain_len_dec - 1])), value)).map(|v| v.1))
+                    Ok(self.pool[key_chain_len_dec]
+                        .insert(
+                            Arc::clone(&key_chain[key_chain_len_dec]),
+                            (Some(Arc::clone(&key_chain[key_chain_len_dec - 1])), value),
+                        )
+                        .map(|v| v.1))
                 } else {
                     Ok(self.pool[0].insert(Arc::clone(&key_chain[0]), (None, value)).map(|v| v.1))
                 }
             }
-            Err(err) => match err {
-                LeveledHashMapError::KeyChainEmpty => Err(LeveledHashMapError::KeyChainEmpty),
-                LeveledHashMapError::KeyTooMany => {
-                    if self.pool.is_empty() {
-                        let mut map = HashMap::new();
+            Err(err) => {
+                match err {
+                    LeveledHashMapError::KeyChainEmpty => Err(LeveledHashMapError::KeyChainEmpty),
+                    LeveledHashMapError::KeyTooMany => {
+                        if self.pool.is_empty() {
+                            let mut map = HashMap::new();
 
-                        map.insert(Arc::clone(&key_chain[0]), (None, value));
+                            map.insert(Arc::clone(&key_chain[0]), (None, value));
 
-                        self.pool.push(map);
+                            self.pool.push(map);
 
-                        let mut map = HashMap::new();
+                            let mut map = HashMap::new();
 
-                        map.insert(Arc::clone(&key_chain[0]), HashSet::new());
+                            map.insert(Arc::clone(&key_chain[0]), HashSet::new());
 
-                        self.sub.push(map);
+                            self.sub.push(map);
 
-                        Ok(None)
-                    } else {
-                        let mut map = HashMap::new();
+                            Ok(None)
+                        } else {
+                            let mut map = HashMap::new();
 
-                        map.insert(Arc::clone(&key_chain[key_chain_len_dec]), (Some(Arc::clone(&key_chain[key_chain_len_dec - 1])), value));
+                            map.insert(
+                                Arc::clone(&key_chain[key_chain_len_dec]),
+                                (Some(Arc::clone(&key_chain[key_chain_len_dec - 1])), value),
+                            );
 
-                        self.pool.push(map);
+                            self.pool.push(map);
 
-                        let mut map = HashMap::new();
+                            let mut map = HashMap::new();
 
-                        map.insert(Arc::clone(&key_chain[key_chain_len_dec]), HashSet::new());
+                            map.insert(Arc::clone(&key_chain[key_chain_len_dec]), HashSet::new());
 
-                        self.sub.push(map);
+                            self.sub.push(map);
 
-                        let map = self.sub[key_chain_len_dec - 1].get_mut(&key_chain[key_chain_len_dec - 1]).unwrap();
+                            let map = self.sub[key_chain_len_dec - 1]
+                                .get_mut(&key_chain[key_chain_len_dec - 1])
+                                .unwrap();
 
-                        map.insert(Arc::clone(&key_chain[key_chain_len_dec]));
+                            map.insert(Arc::clone(&key_chain[key_chain_len_dec]));
 
+                            Ok(None)
+                        }
+                    }
+                    LeveledHashMapError::KeyChainIncorrect {
+                        level,
+                        key,
+                        last_key,
+                    } => {
+                        Err(LeveledHashMapError::KeyChainIncorrect {
+                            level,
+                            key,
+                            last_key,
+                        })
+                    }
+                    LeveledHashMapError::KeyNotExist {
+                        level,
+                        key,
+                    } => {
+                        self.sub[level]
+                            .insert(Arc::clone(&key_chain[key_chain_len_dec]), HashSet::new());
+                        if level > 0 {
+                            self.pool[level].insert(
+                                key,
+                                (Some(Arc::clone(&key_chain[key_chain_len_dec - 1])), value),
+                            );
+                            self.sub[level - 1]
+                                .get_mut(&key_chain[key_chain_len_dec - 1])
+                                .unwrap()
+                                .insert(Arc::clone(&key_chain[key_chain_len_dec]));
+                        } else {
+                            self.pool[level].insert(key, (None, value));
+                        }
                         Ok(None)
                     }
-                }
-                LeveledHashMapError::KeyChainIncorrect { level, key, last_key } => Err(LeveledHashMapError::KeyChainIncorrect { level, key, last_key }),
-                LeveledHashMapError::KeyNotExist { level, key } => {
-                    self.sub[level].insert(Arc::clone(&key_chain[key_chain_len_dec]), HashSet::new());
-                    if level > 0 {
-                        self.pool[level].insert(key, (Some(Arc::clone(&key_chain[key_chain_len_dec - 1])), value));
-                        self.sub[level - 1].get_mut(&key_chain[key_chain_len_dec - 1]).unwrap().insert(Arc::clone(&key_chain[key_chain_len_dec]));
-                    } else {
-                        self.pool[level].insert(key, (None, value));
-                    }
-                    Ok(None)
                 }
             }
         }
@@ -666,8 +762,8 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     /// ```
     /// extern crate leveled_hash_map;
     ///
-    /// use std::sync::Arc;
     /// use std::collections::HashMap;
+    /// use std::sync::Arc;
     ///
     /// use leveled_hash_map::LeveledHashMap;
     ///
@@ -690,7 +786,12 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     ///
     /// assert_eq!("肉類", result);
     /// ```
-    pub fn insert_many(&mut self, key_chain: &[Arc<K>], value: HashMap<K, V>, start_level: usize) -> Result<HashMap<Arc<K>, V>, LeveledHashMapError<K>> {
+    pub fn insert_many(
+        &mut self,
+        key_chain: &[Arc<K>],
+        value: HashMap<K, V>,
+        start_level: usize,
+    ) -> Result<HashMap<Arc<K>, V>, LeveledHashMapError<K>> {
         let key_chain_len = key_chain.len();
 
         if key_chain_len > self.pool.len() + 1 {
@@ -746,8 +847,26 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
             }
             Err(err) => {
                 match err {
-                    LeveledHashMapError::KeyChainIncorrect { level, key, last_key } => Err(LeveledHashMapError::KeyChainIncorrect { level, key, last_key }),
-                    LeveledHashMapError::KeyNotExist { level, key } => Err(LeveledHashMapError::KeyNotExist { level, key }),
+                    LeveledHashMapError::KeyChainIncorrect {
+                        level,
+                        key,
+                        last_key,
+                    } => {
+                        Err(LeveledHashMapError::KeyChainIncorrect {
+                            level,
+                            key,
+                            last_key,
+                        })
+                    }
+                    LeveledHashMapError::KeyNotExist {
+                        level,
+                        key,
+                    } => {
+                        Err(LeveledHashMapError::KeyNotExist {
+                            level,
+                            key,
+                        })
+                    }
                     LeveledHashMapError::KeyTooMany => Err(LeveledHashMapError::KeyTooMany),
                     LeveledHashMapError::KeyChainEmpty => {
                         if start_level > 0 {
@@ -784,8 +903,8 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     /// ```
     /// extern crate leveled_hash_map;
     ///
-    /// use std::sync::Arc;
     /// use std::collections::HashMap;
+    /// use std::sync::Arc;
     ///
     /// use leveled_hash_map::LeveledHashMap;
     ///
@@ -811,7 +930,14 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     pub fn keys(&self, level: usize) -> Option<&HashMap<Arc<K>, HashSet<Arc<K>>>> {
         match self.sub.get(level) {
             Some(v) => Some(&v),
-            None => None
+            None => None,
         }
+    }
+}
+
+impl<K: Eq + Hash, V> Default for LeveledHashMap<K, V> {
+    #[inline]
+    fn default() -> Self {
+        LeveledHashMap::new()
     }
 }
