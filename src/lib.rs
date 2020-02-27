@@ -168,6 +168,7 @@ pub enum LeveledHashMapError<K> {
 }
 
 impl<K> Debug for LeveledHashMapError<K> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         match self {
             LeveledHashMapError::KeyTooMany => f.write_str("KeyTooMany"),
@@ -193,6 +194,7 @@ impl<K> Debug for LeveledHashMapError<K> {
 }
 
 impl<K> Display for LeveledHashMapError<K> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         match self {
             LeveledHashMapError::KeyTooMany => {
@@ -228,6 +230,7 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     ///
     /// let _map: LeveledHashMap<&'static str, String> = LeveledHashMap::new();
     /// ```
+    #[inline]
     pub fn new() -> LeveledHashMap<K, V> {
         LeveledHashMap {
             pool: Vec::new(),
@@ -247,6 +250,7 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     ///
     /// let _result = map.get(&[Arc::new("first_key")]);
     /// ```
+    #[inline]
     pub fn get(&self, key_chain: &[Arc<K>]) -> Option<&V> {
         self.get_advanced(key_chain, 0)
     }
@@ -263,6 +267,7 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     ///
     /// let _result = map.get_mut(&[Arc::new("first_key")]);
     /// ```
+    #[inline]
     pub fn get_mut(&mut self, key_chain: &[Arc<K>]) -> Option<&mut V> {
         self.get_advanced_mut(key_chain, 0)
     }
@@ -279,6 +284,7 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     ///
     /// let _result = map.get_advanced(&[Arc::new("second_key")], 1);
     /// ```
+    #[inline]
     pub fn get_advanced(&self, key_chain: &[Arc<K>], start_level: usize) -> Option<&V> {
         self.get_professional(key_chain, start_level).ok().map(|v| v.1)
     }
@@ -295,6 +301,7 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     ///
     /// let _result = map.get_advanced_mut(&[Arc::new("second_key")], 1);
     /// ```
+    #[inline]
     pub fn get_advanced_mut(&mut self, key_chain: &[Arc<K>], start_level: usize) -> Option<&mut V> {
         self.get_professional_mut(key_chain, start_level).ok().map(|v| v.1)
     }
@@ -512,6 +519,7 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     ///     result.1[0].get(&Arc::new("meat")).unwrap()
     /// );
     /// ```
+    #[inline]
     pub fn remove(
         &mut self,
         key_chain: &[Arc<K>],
@@ -549,6 +557,7 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     ///     result.1[0].get(&Arc::new("meat")).unwrap()
     /// );
     /// ```
+    #[inline]
     pub fn remove_advanced(
         &mut self,
         key_chain: &[Arc<K>],
@@ -953,6 +962,7 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     ///
     /// assert_eq!(2, result.len());
     /// ```
+    #[inline]
     pub fn keys(&self, level: usize) -> Option<&HashMap<Arc<K>, HashSet<Arc<K>>>> {
         match self.sub.get(level) {
             Some(v) => Some(&v),
