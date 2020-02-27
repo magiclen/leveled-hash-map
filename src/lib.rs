@@ -1,7 +1,8 @@
 #![allow(clippy::type_complexity)]
 
 use std::collections::{HashMap, HashSet};
-use std::fmt::{self, Debug, Formatter};
+use std::error::Error;
+use std::fmt::{self, Debug, Display, Formatter};
 use std::hash::Hash;
 use std::sync::Arc;
 
@@ -169,29 +170,54 @@ pub enum LeveledHashMapError<K> {
 impl<K> Debug for LeveledHashMapError<K> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         match self {
+            LeveledHashMapError::KeyTooMany => f.write_str("KeyTooMany"),
+            LeveledHashMapError::KeyNotExist {
+                level,
+                ..
+            } => {
+                let mut s = f.debug_struct("KeyNotExist");
+                s.field("Level", level);
+                s.finish()
+            }
+            LeveledHashMapError::KeyChainEmpty => f.write_str("KeyChainEmpty"),
+            LeveledHashMapError::KeyChainIncorrect {
+                level,
+                ..
+            } => {
+                let mut s = f.debug_struct("KeyChainIncorrect");
+                s.field("Level", level);
+                s.finish()
+            }
+        }
+    }
+}
+
+impl<K> Display for LeveledHashMapError<K> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        match self {
             LeveledHashMapError::KeyTooMany => {
-                f.write_str("KeyTooMany")?;
+                f.write_str("The length of a key chain is over the max level of a `LeveledHashMap`.")
             }
             LeveledHashMapError::KeyNotExist {
                 level,
                 ..
             } => {
-                f.write_fmt(format_args!("KeyNotExist(Level={})", level))?;
+                f.write_fmt(format_args!("The key chain is correct, but the last key at level {} in the key chain does not exist.", level))
             }
             LeveledHashMapError::KeyChainEmpty => {
-                f.write_str("KeyChainEmpty")?;
+                f.write_str("The key chain is empty.")
             }
             LeveledHashMapError::KeyChainIncorrect {
                 level,
                 ..
             } => {
-                f.write_fmt(format_args!("KeyChainIncorrect(Level={})", level))?;
+                f.write_fmt(format_args!("The key chain is incorrect at level {}.", level))
             }
         }
-
-        Ok(())
     }
 }
+
+impl<K> Error for LeveledHashMapError<K> {}
 
 impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     /// Create a new `LeveledHashMap` instance. The key needs to be implemented `Eq` and `Hash` traits.
