@@ -964,10 +964,7 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     /// ```
     #[inline]
     pub fn keys(&self, level: usize) -> Option<&HashMap<Arc<K>, HashSet<Arc<K>>>> {
-        match self.sub.get(level) {
-            Some(v) => Some(&v),
-            None => None,
-        }
+        self.sub.get(level)
     }
 }
 
