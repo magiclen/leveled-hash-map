@@ -718,9 +718,9 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
                 match err {
                     LeveledHashMapError::KeyChainEmpty => Err(LeveledHashMapError::KeyChainEmpty),
                     LeveledHashMapError::KeyTooMany => {
-                        if self.pool.is_empty() {
-                            let mut map = HashMap::new();
+                        let mut map = HashMap::new();
 
+                        if self.pool.is_empty() {
                             map.insert(Arc::clone(&key_chain[0]), (None, value));
 
                             self.pool.push(map);
@@ -733,8 +733,6 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
 
                             Ok(None)
                         } else {
-                            let mut map = HashMap::new();
-
                             map.insert(
                                 Arc::clone(&key_chain[key_chain_len_dec]),
                                 (Some(Arc::clone(&key_chain[key_chain_len_dec - 1])), value),
