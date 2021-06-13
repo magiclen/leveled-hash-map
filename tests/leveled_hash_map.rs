@@ -6,7 +6,6 @@ use std::sync::Arc;
 use leveled_hash_map::LeveledHashMap;
 
 #[test]
-#[allow(clippy::cognitive_complexity)]
 fn advanced() {
     let mut map: LeveledHashMap<&'static str, u8> = LeveledHashMap::new();
 
