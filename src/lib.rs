@@ -361,7 +361,7 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
                             last_key: pk.as_ref().map(|v| Arc::clone(v)),
                         });
                     }
-                    last_key = Some(&ck);
+                    last_key = Some(ck);
                 }
                 None => {
                     return Err(LeveledHashMapError::KeyNotExist {
@@ -451,7 +451,7 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
                             last_key: pk.as_ref().map(|v| Arc::clone(v)),
                         });
                     }
-                    last_key = Some(&ck);
+                    last_key = Some(ck);
                 }
                 None => {
                     return Err(LeveledHashMapError::KeyNotExist {
@@ -852,7 +852,7 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
                     let k = Arc::new(k);
 
                     if let Some((pk, _)) = self.pool[level].get(&Arc::clone(&k)) {
-                        if last_key.ne(&pk.as_ref().unwrap()) {
+                        if last_key.ne(pk.as_ref().unwrap()) {
                             return Err(LeveledHashMapError::KeyChainIncorrect {
                                 level,
                                 key: Arc::clone(&k),
