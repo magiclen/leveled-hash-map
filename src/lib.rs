@@ -17,8 +17,6 @@ pub struct LeveledHashMap<K: Eq + Hash, V> {
 pub enum LeveledHashMapError<K> {
     /// The length of a key chain is over the max level of a `LeveledHashMap`.
     /// ```
-    /// extern crate leveled_hash_map;
-    ///
     /// use std::sync::Arc;
     ///
     /// use leveled_hash_map::{LeveledHashMap, LeveledHashMapError};
@@ -61,8 +59,6 @@ pub enum LeveledHashMapError<K> {
     KeyTooMany,
     /// The key chain is correct, but the last key in the key chain does not exist.
     /// ```
-    /// extern crate leveled_hash_map;
-    ///
     /// use std::sync::Arc;
     ///
     /// use leveled_hash_map::{LeveledHashMap, LeveledHashMapError};
@@ -99,8 +95,6 @@ pub enum LeveledHashMapError<K> {
     },
     /// The key chain is empty.
     /// ```
-    /// extern crate leveled_hash_map;
-    ///
     /// use std::sync::Arc;
     ///
     /// use leveled_hash_map::{LeveledHashMap, LeveledHashMapError};
@@ -124,8 +118,6 @@ pub enum LeveledHashMapError<K> {
     KeyChainEmpty,
     /// The key chain is incorrect.
     /// ```
-    /// extern crate leveled_hash_map;
-    ///
     /// use std::sync::Arc;
     ///
     /// use leveled_hash_map::{LeveledHashMap, LeveledHashMapError};
@@ -224,8 +216,6 @@ impl<K> Error for LeveledHashMapError<K> {}
 impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
     /// Create a new `LeveledHashMap` instance. The key needs to be implemented `Eq` and `Hash` traits.
     /// ```
-    /// extern crate leveled_hash_map;
-    ///
     /// use leveled_hash_map::LeveledHashMap;
     ///
     /// let _map: LeveledHashMap<&'static str, String> = LeveledHashMap::new();
@@ -240,8 +230,6 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
 
     /// Get a value by a key chain. The key chain starts at Level 0.
     /// ```
-    /// extern crate leveled_hash_map;
-    ///
     /// use std::sync::Arc;
     ///
     /// use leveled_hash_map::LeveledHashMap;
@@ -257,8 +245,6 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
 
     /// Get a value by a key chain. The key chain starts at Level 0.
     /// ```
-    /// extern crate leveled_hash_map;
-    ///
     /// use std::sync::Arc;
     ///
     /// use leveled_hash_map::LeveledHashMap;
@@ -274,8 +260,6 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
 
     /// Get a value by a key chain and a level which the key chain starts with.
     /// ```
-    /// extern crate leveled_hash_map;
-    ///
     /// use std::sync::Arc;
     ///
     /// use leveled_hash_map::LeveledHashMap;
@@ -291,8 +275,6 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
 
     /// Get a value by a key chain and a level which the key chain starts with.
     /// ```
-    /// extern crate leveled_hash_map;
-    ///
     /// use std::sync::Arc;
     ///
     /// use leveled_hash_map::LeveledHashMap;
@@ -308,8 +290,6 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
 
     /// Get a value and its parent key by a key chain and a level which the key chain starts with. It returns a `Err(LeveledHashMapError)` instance to describe the reason of the getting failure.
     /// ```
-    /// extern crate leveled_hash_map;
-    ///
     /// use std::sync::Arc;
     ///
     /// use leveled_hash_map::LeveledHashMap;
@@ -358,7 +338,7 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
                         return Err(LeveledHashMapError::KeyChainIncorrect {
                             level: ii,
                             key: Arc::clone(ck),
-                            last_key: pk.as_ref().map(|v| Arc::clone(v)),
+                            last_key: pk.as_ref().map(Arc::clone),
                         });
                     }
                     last_key = Some(ck);
@@ -384,10 +364,10 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
                     return Err(LeveledHashMapError::KeyChainIncorrect {
                         level: ii,
                         key: Arc::clone(ck),
-                        last_key: pk.as_ref().map(|v| Arc::clone(v)),
+                        last_key: pk.as_ref().map(Arc::clone),
                     });
                 }
-                let pk = pk.as_ref().map(|v| Arc::clone(v));
+                let pk = pk.as_ref().map(Arc::clone);
                 Ok((pk, v))
             }
             None => {
@@ -401,8 +381,6 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
 
     /// Get a value and its parent key by a key chain and a level which the key chain starts with. It returns a `Err(LeveledHashMapError)` instance to describe the reason of the getting failure.
     /// ```
-    /// extern crate leveled_hash_map;
-    ///
     /// use std::sync::Arc;
     ///
     /// use leveled_hash_map::LeveledHashMap;
@@ -448,7 +426,7 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
                         return Err(LeveledHashMapError::KeyChainIncorrect {
                             level: ii,
                             key: Arc::clone(ck),
-                            last_key: pk.as_ref().map(|v| Arc::clone(v)),
+                            last_key: pk.as_ref().map(Arc::clone),
                         });
                     }
                     last_key = Some(ck);
@@ -474,10 +452,10 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
                     return Err(LeveledHashMapError::KeyChainIncorrect {
                         level: ii,
                         key: Arc::clone(ck),
-                        last_key: pk.as_ref().map(|v| Arc::clone(v)),
+                        last_key: pk.as_ref().map(Arc::clone),
                     });
                 }
-                let pk = pk.as_ref().map(|v| Arc::clone(v));
+                let pk = pk.as_ref().map(Arc::clone);
                 Ok((pk, v))
             }
             None => {
@@ -491,8 +469,6 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
 
     /// Remove a value by a key chain. The key chain starts at Level 0.
     /// ```
-    /// extern crate leveled_hash_map;
-    ///
     /// use std::sync::Arc;
     ///
     /// use leveled_hash_map::LeveledHashMap;
@@ -529,8 +505,6 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
 
     /// Remove a value by a key chain and a level which the key chain starts with.
     /// ```
-    /// extern crate leveled_hash_map;
-    ///
     /// use std::sync::Arc;
     ///
     /// use leveled_hash_map::LeveledHashMap;
@@ -568,8 +542,6 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
 
     /// Remove a value by a key chain and a level which the key chain starts with. It returns a `Err(LeveledHashMapError)` instance to describe the reason of the getting failure.
     /// ```
-    /// extern crate leveled_hash_map;
-    ///
     /// use std::sync::Arc;
     ///
     /// use leveled_hash_map::LeveledHashMap;
@@ -660,8 +632,6 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
 
     /// Insert a value by a key chain. It returns a `Err(LeveledHashMapError)` instance to describe the reason of the getting failure.
     /// ```
-    /// extern crate leveled_hash_map;
-    ///
     /// use std::sync::Arc;
     ///
     /// use leveled_hash_map::LeveledHashMap;
@@ -793,8 +763,6 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
 
     /// Insert values by a key chain and a `HashMap` instance and a level which the key chain starts with. It returns a `Err(LeveledHashMapError)` instance to describe the reason of the getting failure.
     /// ```
-    /// extern crate leveled_hash_map;
-    ///
     /// use std::collections::HashMap;
     /// use std::sync::Arc;
     ///
@@ -856,7 +824,7 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
                             return Err(LeveledHashMapError::KeyChainIncorrect {
                                 level,
                                 key: Arc::clone(&k),
-                                last_key: pk.as_ref().map(|v| Arc::clone(v)),
+                                last_key: pk.as_ref().map(Arc::clone),
                             });
                         }
                     }
@@ -934,8 +902,6 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
 
     /// Get the keys at a specific level.
     /// ```
-    /// extern crate leveled_hash_map;
-    ///
     /// use std::collections::HashMap;
     /// use std::sync::Arc;
     ///

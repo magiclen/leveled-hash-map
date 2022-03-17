@@ -8,8 +8,6 @@ Leveled HashMap
 ## Example
 
 ```rust
-extern crate leveled_hash_map;
-
 use std::sync::Arc;
 use std::collections::HashMap;
 

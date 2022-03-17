@@ -1,8 +1,8 @@
 [package]
 name = "leveled-hash-map"
-version = "1.1.13"
+version = "1.1.14"
 authors = ["Magic Len <len@magiclen.org>"]
-edition = "2018"
+edition = "2021"
 repository = "https://github.com/magiclen/leveled-hash-map"
 homepage = "https://magiclen.org/leveled-hash-map"
 keywords = ["hash", "map", "level", "hierarchy"]

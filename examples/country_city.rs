@@ -1,10 +1,9 @@
-extern crate leveled_hash_map;
-
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use leveled_hash_map::LeveledHashMap;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 struct MultiName {
     us: &'static str,
