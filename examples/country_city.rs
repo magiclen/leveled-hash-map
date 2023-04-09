@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use leveled_hash_map::LeveledHashMap;
 
@@ -25,59 +24,43 @@ fn main() {
         let mut us_states = HashMap::new();
 
         us_states.insert("New York", MultiName {
-            us: "New York",
-            tw: "紐約州",
-            cn: "纽约州",
+            us: "New York", tw: "紐約州", cn: "纽约州"
         });
         us_states.insert("Utah", MultiName {
-            us: "Utah",
-            tw: "猶他州",
-            cn: "犹他州",
+            us: "Utah", tw: "猶他州", cn: "犹他州"
         });
 
         map.insert_many(&[Arc::new("US")], us_states, 0).unwrap();
 
         map.insert(&[Arc::new("CN")], MultiName {
-            us: "China",
-            tw: "中國",
-            cn: "中国",
+            us: "China", tw: "中國", cn: "中国"
         })
         .unwrap();
 
         let mut cn_provinces = HashMap::new();
 
         cn_provinces.insert("Guangdong", MultiName {
-            us: "Guangdong",
-            tw: "廣東省",
-            cn: "广东省",
+            us: "Guangdong", tw: "廣東省", cn: "广东省"
         });
         cn_provinces.insert("Fujian", MultiName {
-            us: "Fujian",
-            tw: "福建省",
-            cn: "福建省",
+            us: "Fujian", tw: "福建省", cn: "福建省"
         });
 
         map.insert_many(&[Arc::new("CN")], cn_provinces, 0).unwrap();
 
         map.insert(&[Arc::new("TW")], MultiName {
-            us: "Taiwan",
-            tw: "臺灣",
-            cn: "臺湾",
+            us: "Taiwan", tw: "臺灣", cn: "臺湾"
         })
         .unwrap();
 
         let mut tw_counties = HashMap::new();
 
         tw_counties.insert("Taipei", MultiName {
-            us: "Taipei",
-            tw: "台北",
-            cn: "台北",
+            us: "Taipei", tw: "台北", cn: "台北"
         });
 
         tw_counties.insert("Taichung", MultiName {
-            us: "Taichung",
-            tw: "台中",
-            cn: "台中",
+            us: "Taichung", tw: "台中", cn: "台中"
         });
 
         map.insert_many(&[Arc::new("TW")], tw_counties, 0).unwrap();
