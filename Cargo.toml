@@ -9,7 +9,6 @@ homepage = "https://magiclen.org/leveled-hash-map"
 keywords = ["hash", "map", "level", "hierarchy"]
 categories = ["data-structures"]
 description = "A structure to separate values into different levels with keys. Every key-value entry which is not at the top level has a parent key at the superior level. Keys at the same level are unique, no matter what parent keys they have."
-readme = "README.md"
 license = "MIT"
 include = ["src/**/*", "Cargo.toml", "README.md", "LICENSE"]
 
