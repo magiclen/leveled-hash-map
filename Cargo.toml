@@ -2,7 +2,7 @@
 name = "leveled-hash-map"
 version = "1.2.0"
 authors = ["Magic Len <len@magiclen.org>"]
-edition = "2021"
+edition = "2024"
 rust-version = "1.87"
 repository = "https://github.com/magiclen/leveled-hash-map"
 homepage = "https://magiclen.org/leveled-hash-map"

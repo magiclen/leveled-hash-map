@@ -289,7 +289,7 @@ impl<K: Eq + Hash, V> LeveledHashMap<K, V> {
                     return Err(LeveledHashMapError::KeyNotExist {
                         level: ii,
                         key:   Arc::clone(ck),
-                    })
+                    });
                 },
             }
         }
